@@ -26,7 +26,7 @@ Goals for the script:
 2. **Natural Title Introduction**: The co-hosts MUST introduce the title of the show naturally early on during their introductory banter.
 3. **Explain the Tech**: Walk through all the papers/files in the research, explaining the concepts in a fun, conversational way with short, choice bites.
 4. **Surprising Facts**: Highlight key, shocking sticking points from the research that would surprise the listener.
-5. **Target Length**: Write a short, highly punchy, and engaging conversation. It should be around 500 words. Avoid unnecessary filler and focus on the most interesting details.
+5. **Target Length**: Write a short, highly punchy, and engaging conversation. It should be around 1000 words. Avoid unnecessary filler and focus on the most interesting details. 
 
 ## Formatting & Interaction Rules
 
