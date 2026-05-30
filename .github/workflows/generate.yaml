@@ -26,7 +26,7 @@ jobs:
       - name: Create GCS Key File
         if: env.GCS_KEY_JSON != ''
         run: |
-          echo "${{ secrets.GCS_KEY_JSON }}" > gcs-key.json
+          python3 -c "import os; open('gcs-key.json', 'w').write(os.environ['GCS_KEY_JSON'])"
         env:
           GCS_KEY_JSON: ${{ secrets.GCS_KEY_JSON }}
 
@@ -34,3 +34,4 @@ jobs:
         run: uv run main.py
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

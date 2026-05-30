@@ -77,9 +77,27 @@ def mix(speech: AudioSegment, music: AudioSegment | None) -> AudioSegment:
 
 def upload_to_gcs(local_path: Path, gcs_key_path: str) -> str:
     """Upload file to GCS and return public URL."""
+    import json
     from google.cloud import storage
+    from google.oauth2 import service_account
 
-    client = storage.Client.from_service_account_json(gcs_key_path)
+    with open(gcs_key_path, "r", encoding="utf-8") as f:
+        info = json.load(f)
+
+    private_key = info.get("private_key", "")
+    if private_key:
+        header = "-----BEGIN PRIVATE KEY-----"
+        footer = "-----END PRIVATE KEY-----"
+        # Extract base64 body and remove any existing whitespaces/newlines
+        body = private_key.replace(header, "").replace(footer, "").strip()
+        body = "".join(body.split())
+        # Format into standard 64-character chunks
+        lines = [body[i:i+64] for i in range(0, len(body), 64)]
+        # Re-assemble standard PEM
+        info["private_key"] = f"{header}\n" + "\n".join(lines) + f"\n{footer}\n"
+
+    credentials = service_account.Credentials.from_service_account_info(info)
+    client = storage.Client(credentials=credentials)
     bucket = client.bucket(GCS_BUCKET)
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")

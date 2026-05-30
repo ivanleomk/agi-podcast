@@ -57,7 +57,8 @@ pipeline_prompt = (
     "3. Generate background music from script.md by running the generate_music skill (e.g., generate_music.py) saving to audio/music/background.mp3.\n"
     "4. Mix the speech and music together, then upload to GCS by running the audio_mixing skill (e.g., mix_audio.py) with the --upload and --gcs-key gcs-key.json flags.\n\n"
     "Please make sure to install any required packages (like pydub, google-cloud-storage) and system dependencies (like ffmpeg if not already available) needed for these scripts. "
-    "Verify the final mixed podcast MP3 is uploaded successfully and output the GCS public URL so I can listen to it."
+    "Verify the final mixed podcast MP3 is uploaded successfully and output the GCS public URL so I can listen to it.\n\n"
+    "At the very end of your final response, make sure to output the public GCS URL wrapped inside <video_link> and </video_link> tags (literally like that, with no extra spaces or formatting around the tags, e.g. <video_link>URL</video_link>) so it can be programmatically parsed."
 )
 
 interaction = client.interactions.create(
@@ -88,6 +89,7 @@ class StreamParser:
         self.steps = {}
         self.on_chunk = on_chunk or self.default_on_chunk
         self.current_type = None
+        self.full_text = []
 
     def default_on_chunk(self, chunk: str, chunk_type: str):
         if chunk_type == "thought":
@@ -200,6 +202,7 @@ class StreamParser:
                 if delta.get("type") == "text":
                     text = delta.get("text", "")
                     if text:
+                        self.full_text.append(text)
                         self.on_chunk(text, "text")
                 return
 
@@ -279,3 +282,90 @@ with open("./result.jsonl", "w") as f:
                 chunk_dict = {}
                 
         parser.process_event(chunk_dict)
+
+# Parse GCS URL from the final response text
+full_response = "".join(parser.full_text)
+
+import re
+gcs_url = None
+
+# Attempt to find within <video_link> tags first
+video_link_match = re.search(r"<video_link>([\s]*https://storage\.googleapis\.com/[^\s\)\*<]+?\.mp3[\s]*)</video_link>", full_response)
+if video_link_match:
+    gcs_url = video_link_match.group(1).strip()
+
+if not gcs_url:
+    # Fallback to any storage.googleapis.com URL ending in .mp3
+    gcs_url_match = re.search(r"https://storage\.googleapis\.com/[^\s\)\*]+?\.mp3", full_response)
+    if gcs_url_match:
+        gcs_url = gcs_url_match.group(0).strip()
+
+if gcs_url:
+    print(f"\n\n🎯 Extracted GCS Podcast URL: {gcs_url}")
+    
+    token = os.environ.get("GITHUB_TOKEN")
+    repo = os.environ.get("GITHUB_REPOSITORY")
+    event_path = os.environ.get("GITHUB_EVENT_PATH")
+    
+    if token and repo:
+        import urllib.request
+        
+        issue_number = None
+        commit_sha = None
+        
+        if event_path and os.path.exists(event_path):
+            try:
+                with open(event_path, "r", encoding="utf-8") as f:
+                    event_data = json.load(f)
+                
+                if "pull_request" in event_data:
+                    issue_number = event_data["pull_request"]["number"]
+                elif "issue" in event_data:
+                    issue_number = event_data["issue"]["number"]
+                
+                if not issue_number:
+                    if "head_commit" in event_data:
+                        commit_sha = event_data["head_commit"]["id"]
+                    elif "after" in event_data:
+                        commit_sha = event_data["after"]
+            except Exception as e:
+                print(f"Error parsing GITHUB_EVENT_PATH: {e}")
+                
+        if not issue_number and not commit_sha:
+            commit_sha = os.environ.get("GITHUB_SHA")
+            
+        comment_body = (
+            f"### 🎉 Podcast Episode Generated!\n\n"
+            f"The latest podcast episode has been successfully produced and uploaded to Google Cloud Storage.\n\n"
+            f"👉 **[Listen to the Episode]({gcs_url})**"
+        )
+        
+        headers = {
+            "Authorization": f"token {token}",
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "antigravity-podcast-agent"
+        }
+        
+        if issue_number:
+            url = f"https://api.github.com/repos/{repo}/issues/{issue_number}/comments"
+            data = json.dumps({"body": comment_body}).encode("utf-8")
+            req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+            try:
+                with urllib.request.urlopen(req) as response:
+                    print(f"✅ Successfully posted comment to PR/Issue #{issue_number}!")
+            except Exception as e:
+                print(f"❌ Failed to comment on PR/Issue #{issue_number}: {e}")
+                
+        elif commit_sha:
+            url = f"https://api.github.com/repos/{repo}/commits/{commit_sha}/comments"
+            data = json.dumps({"body": comment_body}).encode("utf-8")
+            req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+            try:
+                with urllib.request.urlopen(req) as response:
+                    print(f"✅ Successfully posted comment to commit {commit_sha[:7]}!")
+            except Exception as e:
+                print(f"❌ Failed to comment on commit {commit_sha[:7]}: {e}")
+    else:
+        print("\nℹ️ GitHub credentials not fully set in environment (GITHUB_TOKEN or GITHUB_REPOSITORY missing). Skipping comment.")
+else:
+    print("\n⚠️ No GCS Podcast URL found in the agent's output.")

@@ -87,4 +87,9 @@ python3 /.agents/skills/audio_mixing/scripts/mix_audio.py \
 
 Output: A mixed MP3 at `<workspace>/audio/final/ai_radio.mp3` and a public GCS URL.
 
-
+At the very end of your final response, make sure to output the public GCS URL wrapped inside `<video_link>` and `</video_link>` tags so it can be programmatically parsed and commented:
+```html
+<video_link>
+https://storage.googleapis.com/agi-podcast-audio/episodes/ai_radio_xxxx.mp3
+</video_link>
+```
