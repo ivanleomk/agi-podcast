@@ -52,7 +52,11 @@ client = genai.Client()
 
 pipeline_prompt = (
     "Please run the full AGI podcast production pipeline end-to-end:\n\n"
-    "1. Write the podcast script by running the script_writing skill (e.g., write_script.py) which reads from content/ and outputs to script.md.\n"
+    "1. Write the podcast script by running the script_writing skill:\n"
+    "   - Read all research/input markdown files in content/.\n"
+    "   - Perform a quick web search to gather extra background/context on the topic.\n"
+    "   - Generate a highly engaging and punchy co-host podcast script (featuring Paul and Sarah) of around 500 words in choice bites, following the formatting rules in .agents/skills/script_writing/SKILL.md.\n"
+    "   - Save the script directly to script.md in the working directory.\n"
     "2. Generate TTS speech audio from script.md by running the generate_tts skill (e.g., generate_tts.py) saving to audio/speech.wav.\n"
     "3. Generate background music from script.md by running the generate_music skill (e.g., generate_music.py) saving to audio/music/background.mp3.\n"
     "4. Mix the speech and music together, then upload to GCS by running the audio_mixing skill (e.g., mix_audio.py) with the --upload and --gcs-key gcs-key.json flags.\n\n"

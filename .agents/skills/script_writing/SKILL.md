@@ -9,30 +9,29 @@ This skill packages the logic to automatically generate highly engaging, punchy,
 
 ## Overview
 
-The **script_writing** skill automates the creation of natural conversational scripts. It:
-1. Loads environment variables (from `.env` using `python-dotenv`).
-2. Reads research/input markdown files.
-3. Calls the Gemini Interactions API with a customized system prompt.
-4. Generates a concise, high-impact script in short, choice bites (~500 words).
-5. Saves the script to `script.md`.
+Instead of running a python script, you (the agent) will write the script yourself:
+1. Read the research/input markdown files in `content/`.
+2. Perform a web search to gather extra context, latest developments, and interesting details on the tech/topics mentioned in the research files.
+3. Write the co-host podcast script directly, strictly adhering to the **Script Guidelines** and **Formatting Rules** below.
+4. Save the generated script directly to `script.md` in the working directory.
 
-## Setup & Prerequisites
+## Script Guidelines
 
-Make sure the required dependencies are installed:
-```bash
-uv add google-genai python-dotenv
-```
+Co-Hosts:
+- **Paul**: Thoughtful, tech-savvy co-host.
+- **Sarah**: Inquisitive, curious co-host.
 
-Ensure `GOOGLE_API_KEY` is set in your environment or in a `.env` file in the root directory.
+Goals for the script:
+1. **Dynamic Title**: Come up with a catchy, unique, and descriptive title for the episode and introduce it naturally.
+2. **Natural Title Introduction**: The co-hosts MUST introduce the title of the show naturally early on during their introductory banter.
+3. **Explain the Tech**: Walk through all the papers/files in the research, explaining the concepts in a fun, conversational way with short, choice bites.
+4. **Surprising Facts**: Highlight key, shocking sticking points from the research that would surprise the listener.
+5. **Target Length**: Write a short, highly punchy, and engaging conversation. It should be around 500 words. Avoid unnecessary filler and focus on the most interesting details.
 
-## Script Writer Implementation
+## Formatting & Interaction Rules
 
-The Python script is located in `scripts/write_script.py`. It is a standalone script that accepts path arguments or automatically falls back to markdown files in the `content/` folder.
-
-## How to Run
-
-To run the skill and write a podcast script from your research:
-```bash
-uv run .agents/skills/script_writing/scripts/write_script.py [input_file1.md] [input_file2.md]
-```
-If no input files are specified, it automatically searches the `content/` directory for any markdown files.
+- **NO MARKDOWN FORMATTING**: Do not use bold (no **Paul:** or **Sarah:**), do not use italics (no *DiffusionBlocks*), do not use markdown headers, bullet points, or lists. Output PURE raw text.
+- **Start each line** with the speaker name and a colon: `Paul: ` or `Sarah: ` (do not bold these speaker tags).
+- **Weave expressive emotion tags** in square brackets naturally mid-sentence where they actually occur in natural speech (e.g., `[laughter]`, `[giggle]`, `[sighs]`, `[excitedly]`, `[puzzled]`, `[chuckles]`).
+- **Keep sentences short**, natural, and conversational with standard filler words and active banter.
+- **Ground the script** in the research facts; do not fabricate.

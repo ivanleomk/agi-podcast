@@ -36,11 +36,11 @@ pip install google-genai python-dotenv pydub google-cloud-storage --break-system
 
 Read `/.agents/skills/script_writing/SKILL.md` for full instructions.
 
-```bash
-pip install google-genai python-dotenv --break-system-packages
-export GOOGLE_API_KEY=dummy
-python3 /.agents/skills/script_writing/scripts/write_script.py
-```
+Instead of running a python script, you should write the script yourself:
+1. Read the research/input markdown files in `content/`.
+2. Perform a web search to gather extra background/context and interesting details on the tech/topics mentioned in the research files.
+3. Write a natural, highly engaging, and punchy co-host podcast script (featuring Paul and Sarah) in short, choice bites (~800 words), following the specific formatting rules in `/.agents/skills/script_writing/SKILL.md`.
+4. Save the generated script directly to `script.md` in the working directory.
 
 Output: `script.md` in the working directory.
 
