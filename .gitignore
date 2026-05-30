@@ -11,3 +11,12 @@ wheels/
 
 # Secrets
 .env
+gcs-key.json
+script-writer/workspace/.env
+
+# Output files
+script.md
+audio/
+result.jsonl
+*.pyc
+

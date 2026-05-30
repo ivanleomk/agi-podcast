@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = [
+#   "google-genai>=2.7.0",
+#   "python-dotenv>=1.0.1"
+# ]
+# ///
 import os
 import sys
 from dotenv import load_dotenv

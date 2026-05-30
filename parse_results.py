@@ -1,87 +1,6 @@
-import os
-from dotenv import load_dotenv
-from google import genai
 import json
-
-load_dotenv()
-
-def add_directory_sources(dir_path: str, sources_list: list):
-    if not os.path.exists(dir_path):
-        return
-    for root, dirs, files in os.walk(dir_path):
-        # Exclude common generated/ignored directories
-        dirs[:] = [d for d in dirs if d not in [".git", ".venv", "__pycache__"]]
-        for file in files:
-            # Exclude environment secrets and OS-generated files
-            if file in [".env", ".DS_Store", "uv.lock"]:
-                continue
-            filepath = os.path.join(root, file)
-            if not os.path.isfile(filepath):
-                continue
-            # Use relative path as the remote environment target
-            rel_path = os.path.relpath(filepath, start=".")
-            try:
-                with open(filepath, "r", encoding="utf-8") as f:
-                    content = f.read()
-                sources_list.append({
-                    "type": "inline",
-                    "target": rel_path,
-                    "content": content
-                })
-            except Exception:
-                # Silently skip binary files or unreadable files
-                pass
-
-# Prepare remote environment sources
-sources = []
-add_directory_sources(".agents", sources)
-add_directory_sources("content", sources)
-
-# Add GCS service account key to the remote environment if it exists
-if os.path.exists("gcs-key.json"):
-    with open("gcs-key.json", "r", encoding="utf-8") as f:
-        sources.append({
-            "type": "inline",
-            "target": "gcs-key.json",
-            "content": f.read()
-        })
-
-google_api_key = os.environ.get("GOOGLE_API_KEY")
-
-client = genai.Client()
-
-pipeline_prompt = (
-    "Please run the full AGI podcast production pipeline end-to-end:\n\n"
-    "1. Write the podcast script by running the script_writing skill (e.g., write_script.py) which reads from content/ and outputs to script.md.\n"
-    "2. Generate TTS speech audio from script.md by running the generate_tts skill (e.g., generate_tts.py) saving to audio/speech.wav.\n"
-    "3. Generate background music from script.md by running the generate_music skill (e.g., generate_music.py) saving to audio/music/background.mp3.\n"
-    "4. Mix the speech and music together, then upload to GCS by running the audio_mixing skill (e.g., mix_audio.py) with the --upload and --gcs-key gcs-key.json flags.\n\n"
-    "Please make sure to install any required packages (like pydub, google-cloud-storage) and system dependencies (like ffmpeg if not already available) needed for these scripts. "
-    "Verify the final mixed podcast MP3 is uploaded successfully and output the GCS public URL so I can listen to it."
-)
-
-interaction = client.interactions.create(
-    agent="antigravity-preview-05-2026",
-    input=pipeline_prompt,
-    stream=True,  
-    environment={
-        "type": "remote",
-        "sources": sources,
-        "network": {
-            "allowlist": [
-                {
-                    "domain": "generativelanguage.googleapis.com",
-                    "transform": {
-                        "x-goog-api-key": google_api_key
-                    }
-                },
-                {
-                    "domain": "*"
-                }
-            ]
-        }
-    },
-)
+import sys
+import os
 
 class StreamParser:
     def __init__(self, on_chunk=None):
@@ -253,29 +172,49 @@ class StreamParser:
         if event_type == "step.stop":
             return
 
-parser = StreamParser()
-
-# Stream response events
-with open("./result.jsonl", "w") as f:
-    for chunk in interaction:
-        if hasattr(chunk, "model_dump_json"):
-            chunk_json = chunk.model_dump_json(indent=2)
-        elif hasattr(chunk, "model_dump"):
-            chunk_json = json.dumps(chunk.model_dump(), indent=2, default=str)
-        else:
-            chunk_json = json.dumps(chunk, indent=2, default=str)
-            
-        f.write(chunk_json + "\n")
+def parse_and_print_stream(stream):
+    decoder = json.JSONDecoder()
+    buffer = ""
+    parser = StreamParser()
+    
+    while True:
+        chunk = stream.read(4096)
+        if not chunk:
+            break
+        buffer += chunk
         
-        # Convert chunk to dict for live parsing
-        if hasattr(chunk, "model_dump"):
-            chunk_dict = chunk.model_dump()
-        elif isinstance(chunk, dict):
-            chunk_dict = chunk
-        else:
-            try:
-                chunk_dict = json.loads(chunk_json)
-            except Exception:
-                chunk_dict = {}
+        idx = 0
+        length = len(buffer)
+        while idx < length:
+            while idx < length and buffer[idx].isspace():
+                idx += 1
+            if idx >= length:
+                break
                 
-        parser.process_event(chunk_dict)
+            try:
+                obj, new_idx = decoder.raw_decode(buffer, idx)
+                buffer = buffer[new_idx:]
+                idx = 0
+                length = len(buffer)
+                
+                parser.process_event(obj)
+                    
+            except json.JSONDecodeError:
+                break
+
+def main():
+    target_file = "result.jsonl"
+    if len(sys.argv) > 1:
+        target_file = sys.argv[1]
+        
+    if not os.path.exists(target_file):
+        print(f"Error: {target_file} not found.", file=sys.stderr)
+        sys.exit(1)
+        
+    with open(target_file, "r", encoding="utf-8") as f:
+        parse_and_print_stream(f)
+        print() # trailing newline
+
+if __name__ == "__main__":
+    main()
+
