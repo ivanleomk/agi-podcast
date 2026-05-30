@@ -8,6 +8,10 @@ on:
   # schedule:
   #   - cron: '0 0 * * 1' # Runs weekly on Monday at 00:00 UTC
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   generate:
     name: Run Podcast Generation
