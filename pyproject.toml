@@ -9,4 +9,5 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "pydub>=0.25.1",
     "google-cloud-storage>=3.10.1",
+    "rich>=15.0.0",
 ]

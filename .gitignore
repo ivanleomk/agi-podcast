@@ -18,5 +18,6 @@ script-writer/workspace/.env
 script.md
 audio/
 result.jsonl
+stream_events.jsonl
 *.pyc
 

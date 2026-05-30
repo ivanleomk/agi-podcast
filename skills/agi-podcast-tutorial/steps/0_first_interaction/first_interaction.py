@@ -2,9 +2,13 @@
 """Your first interaction with a Gemini Managed Agent."""
 
 import os
+import warnings
 from google import genai
 from dotenv import load_dotenv
 from rich import print
+
+warnings.filterwarnings("ignore")
+
 
 # Load credentials from environment or local .env file
 load_dotenv()

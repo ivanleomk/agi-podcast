@@ -8,9 +8,13 @@ the raw interactions, and saving them to a JSONL file.
 """
 
 import os
+import warnings
 from google import genai
 from dotenv import load_dotenv
 from rich import print as rprint
+
+warnings.filterwarnings("ignore")
+
 
 # Load environment variables (such as GOOGLE_API_KEY) from .env file
 load_dotenv()

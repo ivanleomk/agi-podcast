@@ -13,11 +13,14 @@ has its own distinct shape — we match on `delta.type` to handle each cleanly.
 
 import json
 import os
+import warnings
 
 from dotenv import load_dotenv
 from google import genai
 from google.genai import interactions
 from rich import print as rprint
+
+warnings.filterwarnings("ignore")
 
 load_dotenv()
 
